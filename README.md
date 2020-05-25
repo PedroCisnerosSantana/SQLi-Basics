@@ -13,9 +13,7 @@ Como vemos el atacante es capaz de modificar la consulta SQL y de esta forma con
 
 * Conseguir datos ocultos
 * Cambiar la logica de la aplicación
-* Conseguir datos de otra tabla usando sentencias UNION
-* Ver la estructura de la base de datos
-* Inyecciones SQL 'a ciegas' (Blind SQLi)
+* Como prevenir los ataques de inyecciones SQL
 
 Estos aspectos se verán a lo largo del documento
 
@@ -31,3 +29,41 @@ SELECT * FROM products WHERE category = 'Gifts' AND releadsed = 1
 ```
 
 Tenemos que conseguir que nos muestre todos los regalos sin importar el campo released, es decir tanto 0 como 1.  
+
+Solo tenemos que filtrar por una categoría y al final añadir lo siguiente  
+```sql
+' OR 1 = 1--
+```
+Esto omitirá el AND de la query ya que comentamos el resto y ponemos un 1 = 1, lo cual siempre es True  
+La query que hará será la siguiente:  
+```sql
+SELECT * FROM products WHERE category = 'Gifts' OR 1=1--' AND released = 1
+```
+
+## Cambiar la lógica de la aplicacion
+Supongamos que tenemos una aplicacion que tiene un login de usuario, siendo el usuario wiener y la contraseña bluecheese la query sería la siguiente:  
+```sql
+SELECT * FROM users WHERE username='wiener' AND password='bluecheese'
+```
+Para esta parte iremos a este enlace de portswigger [URL](https://portswigger.net/web-security/sql-injection/lab-login-bypass)  
+Solo tenemos que ir al login y en el username ponemos esto: `administrator'--` y en la contraseña lo que quieras  
+
+La sentencia SQL sería algo como:  
+```sql
+SELECT * FROM users WHERE username = 'administrator'--' AND password = ''
+```  
+
+## Como prevenir los ataques de inyeccion SQL
+Dado el siguiente codigo java para realizar la query, veremos como se puede blindar 
+```java
+String query = "SELECT * FROM products WHERE category = '"+ input + "'";
+Statement statement = connection.createStatement();
+ResultSet resultSet = statement.executeQuery(query);
+```
+La forma mas fácil es parametrizar la query, es decir que cada input sea un parametro que se le pasa por el programa:
+```java
+PreparedStatement statement = connection.prepareStatement("SELECT * FROM products WHERE category = ?");
+statement.setString(1, input);
+ResultSet resultSet = statement.executeQuery();
+```
+La string que se usa para la query debe ser una constante hardcodeada.
